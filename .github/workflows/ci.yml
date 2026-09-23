@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  QUINT_VERSION: 0.32.0
+
+jobs:
+  quint:
+    name: typecheck, counterexamples, verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: extractions/setup-just@v2
+      - name: Install quint
+        run: npm install -g "@informalsystems/quint@${QUINT_VERSION}" && quint --version
+      - name: Pinned counterexamples, random exploration, over-blocking check
+        run: just quint-check
+      - name: The vulnerable guard must violate safety
+        run: just quint-red-expected
+      - name: Which fix closes which path
+        run: just fix-matrix | tee fix-matrix.md
+      - name: Exhaustive check of the fixed guards
+        run: MAX_STEPS=10 just quint-verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fix-matrix
+          path: fix-matrix.md
+
+  replay:
+    name: replay traces against pinned implementations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: extractions/setup-just@v2
+      - name: Clone the pinned targets
+        run: just replay-setup
+      - name: construct-auto-classifier
+        run: just replay-construct-auto-classifier
+      - name: jev-engineering
+        run: just replay-jev-engineering
