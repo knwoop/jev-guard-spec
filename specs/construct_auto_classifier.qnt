@@ -1,7 +1,7 @@
 // construct_auto_classifier.qnt: the generic guard instantiated with the
 // parameters of godspede/construct-auto-classifier at commit 9062b34.
 //
-// Mapping (see docs/abstraction.md for the full table):
+// Mapping (see README.md for the table):
 //   intent      = the normalised command key of state-manager.ts:107-125,
 //                 which drops `sudo`, leading env assignments, quotes and
 //                 output shapers. `rm -rf build` and `sudo rm -rf build`

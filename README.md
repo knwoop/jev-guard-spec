@@ -38,17 +38,52 @@ traces of up to 14 steps):
 | guard_fix123 | 1+2+3 | closed | closed | closed | open | open |
 | guard_fixed | 1+2+3+4 | closed | closed | closed | closed | closed |
 
-`guard_fixed` has no violation of `safety` in an exhaustive search to depth 15
-with Apalache, and can still execute a reversible action on the oracle's
-Allow (the over-blocking check). See `docs/findings.md` for the numbers and
-the trade-offs.
+Exhaustive checks with Apalache (`just quint-verify`):
+
+| Module | Invariant | Depth | Result | Time |
+|---|---|---|---|---|
+| `guard_fixed` | `safety` | 15 | no violation | 534 s |
+| `construct_auto_classifier_fix1` | `provenance` | 12 | no violation | 25 s |
+| `construct_auto_classifier_fixed` | `safety` | 12 | no violation | 38 s |
+| `jev_engineering_enforce` | `safety` | 12 | no violation | 22 s |
+
+The fixed guard can still execute a reversible action on the oracle's Allow
+(the over-blocking check in `just quint-check`).
 
 One more thing the model caught: the cheapest fix for the real guard, keying
 the cache by (command, cwd), closes both replayed paths but still lets an
 irreversible call repeat from cache inside the window. The model keeps two
 invariants apart for exactly this, `provenance` (no cross-call reuse) and
-`safety` (irreversible calls are judged every time), and the instance file
-has a module for each.
+`safety` (irreversible calls are judged every time), and
+`specs/construct_auto_classifier.qnt` has a module for each.
+
+## Replays
+
+The traces under `traces/` are replayed against the two targets at the
+commits below, cloned by `replay/setup.sh`. Nothing in the targets is
+patched; the tests use the hook's stdin/stdout contract and documented
+environment variables only, with a fake model endpoint that answers what
+the trace says the oracle answered.
+
+| Trace | Target | Result |
+|---|---|---|
+| `construct_auto_classifier_contextLeakTest` | construct-auto-classifier `9062b34`, agy hook | model consulted once; the same command in a different cwd served from cache; the model state contained no cwd |
+| `construct_auto_classifier_sudoLeakTest` | same | `sudo rm -rf build` served from the cache of `rm -rf build` |
+| `construct_auto_classifier_timeoutDeniesTest` | same | timeout gives `deny`; fail-closed holds |
+| `jev_engineering_guard_timeoutRunsTest` | jev-engineering `3161dbf`, `JEV_GATE_MODE=guard` | endpoint hangs, exit 0 |
+| same input | `JEV_GATE_MODE=enforce` | exit 2 |
+
+How the model maps onto construct-auto-classifier:
+
+| Model | Implementation |
+|---|---|
+| `Action.id` | the literal `CommandLine` |
+| `Action.intent` | the normalised allow-cache key, which drops `sudo`, leading env assignments, quotes and output shapers |
+| `ctx` | the `Cwd` of the tool call; in neither the key nor the state sent to the model |
+| `TTL = 5` | the 5-minute sliding window |
+| `FAIL_OPEN = false` | a transport failure is a deny |
+| `CACHE_BY_INTENT = true` | the cache is consulted before the model with no danger check |
+| `switchCtx` | the next tool call carries a different `Cwd` |
 
 ## Layout
 
@@ -57,7 +92,7 @@ specs/
   guard.qnt                      generic, parametric model
   guard_vuln.qnt                 all optimisations on; five pinned counterexamples
   guard_fixed.qnt                the four fixes, plus one-fix-at-a-time modules
-  construct_auto_classifier.qnt  instance with that implementation's parameters
+  construct_auto_classifier.qnt  instance with that implementation's parameters, and its fixes
   jev_engineering.qnt            instance for guard and enforce modes
 traces/                          ITF traces of every pinned test, plus one random violation
 replay/
@@ -65,13 +100,7 @@ replay/
   itf.ts, jev-engineering/itf.py ITF readers: trace -> sequence of tool calls
   construct-auto-classifier/     bun test driving the real agy hook
   jev-engineering/               unittest driving the real PreToolUse hook
-scripts/fix-matrix.sh            the table above
-docs/
-  survey.md                      twelve implementations read at source level, with flow diagrams
-  abstraction.md                 model <-> implementation mapping tables
-  findings.md                    counterexamples, fixes, trade-offs, what the model cannot see
-  article.md                     write-up
-  issues/                        issue drafts for upstream
+scripts/fix-matrix.sh            the fix table above
 ```
 
 ## Running it
@@ -120,17 +149,17 @@ costs.
 
 ## Scope and honesty
 
-- The survey (`docs/survey.md`) records what the code did at the commits
-  listed there, on 2026-09-23. Everything in that list is days old; expect
-  drift.
+- The implementations were read at the commits pinned in `replay/setup.sh`,
+  on 2026-09-23. Expect drift.
 - The pinned counterexamples were written knowing what we were looking for.
-  The model's contribution is the fix matrix, the fifth path, and the claim
-  "no violation to depth N", not the discovery of paths 1 to 3.
-- The replays use public interfaces and documented environment variables
-  only. Nothing in the targets is patched.
+  The model's contribution is the fix matrix, the fifth path, the rejected
+  first fix, and the claim "no violation to depth N", not the discovery of
+  paths 1 to 3.
 - Path 4 was not found in any implementation we read. It is reported as a
   model-level result.
-- Upstream issues are filed before publication; see `docs/issues/`.
+- The invariant accepts any human approval unconditionally, so a guard
+  whose human approval is not bound to the held call would pass it. That is
+  a limit of the abstraction.
 
 ## License
 

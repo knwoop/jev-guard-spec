@@ -32,7 +32,7 @@ quint-check: typecheck
     {{quint}} test --main jev_engineering_guard --match ".*Test" specs/jev_engineering.qnt
     {{quint}} test --main jev_engineering_enforce --match ".*Test" specs/jev_engineering.qnt
     {{quint}} run --main guard_fixed --invariant safety --max-steps 15 --max-samples 5000 specs/guard_fixed.qnt
-    # The key-only fix keeps provenance (no cross-call reuse) but not full safety; see docs/findings.md.
+    # The key-only fix keeps provenance (no cross-call reuse) but not full safety; see README.md.
     {{quint}} run --main construct_auto_classifier_fix1 --invariant provenance --max-steps 15 --max-samples 5000 specs/construct_auto_classifier.qnt
     ./scripts/expect-violation.sh --main construct_auto_classifier_fix1 --invariant safety --max-steps 15 --max-samples 5000 specs/construct_auto_classifier.qnt
     {{quint}} run --main construct_auto_classifier_fixed --invariant safety --max-steps 15 --max-samples 5000 specs/construct_auto_classifier.qnt

@@ -24,7 +24,7 @@ const HERE = import.meta.dir;
 const TARGET = join(HERE, "target");
 const TRACES = join(HERE, "..", "..", "traces");
 
-// ---- abstraction mapping (mirrors docs/abstraction.md) ----
+// ---- abstraction mapping (mirrors README.md) ----
 const COMMAND: Record<string, string> = {
   rm_build: "rm -rf build",
   sudo_rm_build: "sudo rm -rf build",

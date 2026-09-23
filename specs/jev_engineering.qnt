@@ -1,7 +1,7 @@
 // jev_engineering.qnt: the generic guard instantiated with the parameters of
 // eugeniughelbur/jev-engineering at commit 3161dbf, JEV_GATE_MODE=guard.
 //
-// Mapping (see docs/abstraction.md):
+// Mapping (see README.md):
 //   cache       = none. TTL = 0 makes `cacheHit` unreachable.
 //   MAX_RETRY   = 0: one urllib request (jev_gate.py:108-123).
 //   FAIL_OPEN   = true in `guard` mode: an unreachable model is `ask`, and

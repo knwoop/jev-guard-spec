@@ -29,7 +29,7 @@ HERE = Path(__file__).parent
 TARGET = HERE / "target"
 TRACES = HERE.parent.parent / "traces"
 
-# ---- abstraction mapping (mirrors docs/abstraction.md) ----
+# ---- abstraction mapping (mirrors README.md) ----
 COMMAND = {"rm_data": "rm -rf ./data", "ls": "ls"}
 
 
