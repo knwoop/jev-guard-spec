@@ -1,0 +1,5 @@
+replay/*/target/
+node_modules/
+__pycache__/
+_apalache-out/
+*.log
